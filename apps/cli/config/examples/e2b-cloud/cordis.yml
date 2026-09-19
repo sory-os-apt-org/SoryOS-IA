@@ -1,0 +1,47 @@
+# Opt-in E2B cloud-execution patch over any base-backed profile
+# (`dsh-base` first layer: headless, sdk, acp, web).
+#
+# Usage (local checkout stays the default; cloud is per-invocation):
+#   E2B_API_KEY=... pnpm dsh --profile headless --patch apps/cli/config/examples/e2b-cloud/cordis.yml "run the tests"
+#
+# The switch is compositional: these rows REPLACE the local execution world
+# (subprocess, sandbox, filesystem) with the E2B family for this run only.
+# Nothing is committed here — the key arrives via environment at launch.
+# PTC Node execution, the PTC workflow variant, and host-binary file search
+# have no E2B_world equivalent in stage 1 and stay disabled under this overlay.
+
+# The shared E2B sandbox behind the three providers below.
+- insert:
+    - id: e2b
+      name: '@deepseek-ai/dsh-e2b'
+      config:
+        apiKey: !!js process.env.E2B_API_KEY ?? ''
+        workspace: !!js process.env.E2B_WORKSPACE ?? '/home/user/workspace'
+
+# Whole-world replacements: exactly one provider per seam stays mounted.
+- id: subprocess
+  name: '@deepseek-ai/dsh-subprocess-e2b'
+
+- id: sandbox
+  name: '@deepseek-ai/dsh-sandbox-e2b'
+
+- id: fs-sandbox
+  name: '@deepseek-ai/dsh-fs-e2b'
+
+# Policy root must spell the execution world, not the harness host cwd.
+- id: sandbox-policy
+  name: '@deepseek-ai/dsh-sandbox-policy'
+  config:
+    mode: !!js process.env.DSH_PERMISSION_MODE ?? 'workspace-write'
+    workspaceRoot: !!js process.env.E2B_WORKSPACE ?? '/home/user/workspace'
+
+# No E2B control channel exists yet, so PTC runtimes cannot mount here.
+- id: ptc-runtime
+  disabled: true
+
+- id: workflow-ptc
+  disabled: true
+
+# ripgrep is a host binary; it cannot see the sandbox filesystem.
+- id: tool-fs-search
+  disabled: true

@@ -270,6 +270,11 @@
       config:
         maxBytes: 65536
 
+    # The agent's execution world (local machine vs E2B cloud sandbox),
+    # declared once per world per turn as durable context.
+    - id: execution-target
+      name: '@deepseek-ai/dsh-execution-target'
+
     - id: skill
       name: '@deepseek-ai/dsh-skill'
 
