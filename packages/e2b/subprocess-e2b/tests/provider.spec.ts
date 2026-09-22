@@ -42,7 +42,9 @@ function fakeHandle(outcome: Script, pid = 7): Record<string, unknown> {
 
 const fakeCommands = {
   run: vi.fn(async (cmd: string, opts?: {
-    background?: boolean; onStdout?: (data: string) => void; onStderr?: (data: string) => void;
+    background?: boolean
+    onStdout?: (data: string) => void
+    onStderr?: (data: string) => void
   }) => {
     const outcome = state.scripts.get(cmd) ?? { exitCode: 0, stdout: '', stderr: '' }
     if (opts?.background === true) return fakeHandle(outcome)
@@ -56,7 +58,7 @@ const fakeCommands = {
 const fakePty = {
   create: vi.fn(async (opts: { onData?: (data: Uint8Array) => void }) => {
     opts.onData?.(new Uint8Array([104, 105]))
-    return fakeHandle({ exitCode: 0 });
+    return fakeHandle({ exitCode: 0 })
   }),
   sendInput: vi.fn(async (_pid: number, _data: Uint8Array) => {
     state.ptyInputs.push(Buffer.from(_data).toString('utf-8'))
@@ -110,7 +112,7 @@ describe('E2B subprocess provider', () => {
     const ctx = await setup()
     const ok = ctx.subprocess.spawn(collectSpec(['echo', 'hi']))
     await expect(ok.done).resolves.toMatchObject({ exitCode: 0, signal: null })
-    state.scripts.set(`'false'`, { exitCode: 3, stdout: '', stderr: 'nope' })
+    state.scripts.set("'false'", { exitCode: 3, stdout: '', stderr: 'nope' })
     const failed = ctx.subprocess.spawn(collectSpec(['false']))
     await expect(failed.done).resolves.toMatchObject({ exitCode: 3, signal: null })
   })
@@ -136,10 +138,10 @@ describe('E2B subprocess provider', () => {
   it('refuses handle-less shapes loudly', async () => {
     const ctx = await setup()
     expect(() => ctx.subprocess.spawn({ ...collectSpec(['true']), stdio: { stdin: 'ignore', stdout: { maxBytes: 8 }, stderr: { maxBytes: 8 }, control: 'pipe' } }))
-      .toThrowError(/control channel/)
-    expect(() => ctx.subprocess.spawn(collectSpec([]))).toThrowError(/non-empty argv/)
-    await expect(ctx.subprocess.resolveExecutable('')).rejects.toThrowError(/non-empty command/)
-    await expect(ctx.subprocess.resolveExecutable('rel/tool')).rejects.toThrowError(/Relative|relative/)
+      .toThrow(/control channel/)
+    expect(() => ctx.subprocess.spawn(collectSpec([]))).toThrow(/non-empty argv/)
+    await expect(ctx.subprocess.resolveExecutable('')).rejects.toThrow(/non-empty command/)
+    await expect(ctx.subprocess.resolveExecutable('rel/tool')).rejects.toThrow(/Relative|relative/)
   })
 
   it('allocates terminals behind the shared handle shape', async () => {

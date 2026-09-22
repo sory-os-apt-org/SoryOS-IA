@@ -127,6 +127,7 @@ export class E2bConnection extends Service {
     return await Promise.race([
       operation,
       new Promise<never>((_, reject) => {
+        // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- The abort reason is the contract.
         combined.addEventListener('abort', () => { reject(combined.reason) }, { once: true })
       }),
     ])
@@ -200,7 +201,7 @@ export class E2bConnection extends Service {
   private async start(): Promise<{ workspace: string }> {
     const sandbox = await Sandbox.create({
       apiKey: this.config.apiKey,
-      ...(this.config.template === undefined ? {} : { template: this.config.template }),
+      template: this.config.template,
       timeoutMs: this.config.sandboxTimeoutMs,
     })
     if (this.closed) {

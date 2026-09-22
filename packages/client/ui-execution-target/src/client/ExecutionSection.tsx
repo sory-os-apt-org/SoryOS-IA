@@ -14,10 +14,22 @@ import type { ExecutionOperations } from './operations.ts'
 import type { ExecutionSectionState, ExecutionTarget } from './store.ts'
 import classes from './ExecutionSection.module.css'
 
+/** Section controller operations the section invokes. */
+export interface ExecutionSectionController {
+  /** Refresh the snapshot: fold the scope and re-read the key state. */
+  load(): Promise<void>
+  /** Persist the default world through the scope's revision fencing. */
+  saveDefault(target: ExecutionTarget): Promise<void>
+  /** Store the pasted key literal, then re-read its configured state. */
+  saveKey(value: string): Promise<void>
+  /** Remove the key reference, then re-read its configured state. */
+  removeKey(): Promise<void>
+}
+
 /** Injected business face: controller, operations, bound snapshot hook, and copy. */
 export interface ExecutionSectionInjected {
   /** Section controller owning the stored snapshot. */
-  controller: { load(): Promise<void>; saveDefault(target: ExecutionTarget): Promise<void>; saveKey(value: string): Promise<void>; removeKey(): Promise<void> }
+  controller: ExecutionSectionController
   /** Host operations bound in the apply world. */
   operations: ExecutionOperations
   /** Bound snapshot source; the renderer supplies the `useExecution` seat. */

@@ -6,7 +6,10 @@ import { E2bFileSystem } from '../src/index.ts'
 
 vi.mock('e2b', () => {
   class FakeNotFound extends Error {}
-  return { FileNotFoundError: FakeNotFound }
+  return {
+    FileNotFoundError: FakeNotFound,
+    FileType: { FILE: 'file', DIR: 'dir', SYMLINK: 'symlink' },
+  }
 })
 
 type Node =

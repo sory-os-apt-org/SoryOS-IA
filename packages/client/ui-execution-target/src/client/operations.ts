@@ -8,12 +8,12 @@
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { CredentialInfo, SettingsNamespaceView, SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client'
+import { EXECUTION_SETTINGS_NAMESPACE } from '../execution-settings.ts'
+
+export { EXECUTION_SETTINGS_NAMESPACE }
 
 /** The credential reference the E2B key is stored under (an env-var-style name). */
 export const E2B_KEY_REF = 'E2B_API_KEY'
-
-/** The settings namespace carrying the execution default. */
-export const EXECUTION_SETTINGS_NAMESPACE = 'execution-target'
 
 /** What one namespace write answered. */
 export type SettingsWriteOutcome =

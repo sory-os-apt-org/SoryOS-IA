@@ -21,7 +21,7 @@ import { decodeExecutionSection, ExecutionSettingsStore } from './store.ts'
 import { createExecutionOperations, EXECUTION_SETTINGS_NAMESPACE } from './operations.ts'
 import { en, fr, zh, type ExecutionKey } from './locales.ts'
 
-export type { ExecutionSectionInjected, ExecutionSectionProps } from './ExecutionSection.tsx'
+export type { ExecutionSectionController, ExecutionSectionInjected, ExecutionSectionProps } from './ExecutionSection.tsx'
 export type { ExecutionKey } from './locales.ts'
 export type { ExecutionOperations } from './operations.ts'
 export type { ExecutionSectionState, ExecutionTarget } from './store.ts'
@@ -68,7 +68,7 @@ export function apply(ctx: ClientContext): void {
   // own `inject`; the section receives callbacks and never a context.
   const operations = createExecutionOperations(ctx)
   const scope = ctx.settingsScope.bind({ namespace: EXECUTION_SETTINGS_NAMESPACE, decode: decodeExecutionSection })
-  const controller = new ExecutionSettingsStore(ctx, scope, operations)
+  const controller = new ExecutionSettingsStore(scope, operations)
   // Registration-time text (the nav label thunk) and the inject face share
   // one bound translate; copy freshness rides the locale revision.
   const t = ctx.locale.bind(NS) as ExecutionSectionInjected['t']
@@ -88,7 +88,6 @@ export function apply(ctx: ClientContext): void {
     ]
     return () => {
       controller.dispose()
-      void scope.dispose()
       for (const dispose of disposers) dispose()
     }
   }, 'ui-execution-target: pushed invalidations')

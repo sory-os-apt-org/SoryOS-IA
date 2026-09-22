@@ -6,19 +6,16 @@
  * the snapshot it renders from.
  */
 
-import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ExecutionTarget, ExecutionTargetSettings } from '../execution-settings.ts'
 import type { ExecutionOperations } from './operations.ts'
 
-/** Where later sessions run their scripts, tests, and commands. */
-export type ExecutionTarget = 'local' | 'e2b-cloud'
+export type { ExecutionTarget }
 
 /** Decoded `execution-target` section value. */
-export interface ExecutionSectionValue {
-  /** Default world for later sessions. */
-  readonly defTarget: ExecutionTarget
-}
+export type ExecutionSectionValue = ExecutionTargetSettings
 
 /**
  * Decode the bound section without the schema service: the shape is one
@@ -28,30 +25,9 @@ export interface ExecutionSectionValue {
  */
 export function decodeExecutionSection(value: unknown): ExecutionSectionValue | undefined {
   if (typeof value !== 'object' || value === null) return undefined
-  const defTarget = (value as { default?: unknown }).default
-  if (defTarget !== 'local' && defTarget !== 'e2b-cloud') return undefined
-  return { defTarget }
-}
-
-/** Structural face of the bound `execution-target` scope (see `settingsScope.bind`). */
-export interface ExecutionScope {
-  /** @returns the current sync snapshot. */
-  getSnapshot(): { status: string; value: ExecutionSectionValue | undefined; writable: boolean }
-  /**
-   * Observe snapshot replacements.
-   * @param listener - invoked after each snapshot change.
-   * @returns the disposer removing this listener.
-   */
-  subscribe(listener: () => void): () => void
-  /**
-   * Queue one field write with the scope's revision fencing.
-   * @param field - scalar field inside the namespace section.
-   * @param value - JSON-shaped value selected by the user.
-   * @returns settlement after the write and any latest-write recovery read.
-   */
-  set(field: string, value: unknown): Promise<void>
-  /** Stop queued operations and wait for quiescence. */
-  dispose(): Promise<void>
+  const def = (value as { default?: unknown }).default
+  if (def !== 'local' && def !== 'e2b-cloud') return undefined
+  return { default: def }
 }
 
 /** What the Execution section renders. */
@@ -84,15 +60,17 @@ export class ExecutionSettingsStore {
   private readonly disposeScope: () => void
   private disposed = false
 
+  /** Current liveness read fresh at each guard (a getter defeats stale narrowing). */
+  private get alive(): boolean {
+    return !this.disposed
+  }
+
   /**
-   * @param ctx - the section plugin's context, whose `remote.credentials`
-   * namespace carries the key reads.
    * @param scope - the bound `execution-target` settings scope.
    * @param operations - key credential callbacks built in the apply world.
    */
   constructor(
-    private readonly ctx: ClientContext,
-    private readonly scope: ExecutionScope,
+    private readonly scope: SettingsScope<ExecutionSectionValue>,
     private readonly operations: ExecutionOperations,
   ) {
     this.disposeScope = scope.subscribe(() => { this.foldScope() })
@@ -158,7 +136,7 @@ export class ExecutionSettingsStore {
       return
     }
     const info = await this.operations.describeKey()
-    if (this.disposed) return
+    if (!this.alive) return
     this.store.update((s) => {
       s.busy = false
       s.keyStored = info?.configured === true
@@ -180,7 +158,7 @@ export class ExecutionSettingsStore {
       return
     }
     const info = await this.operations.describeKey()
-    if (this.disposed) return
+    if (!this.alive) return
     this.store.update((s) => {
       s.busy = false
       s.keyStored = info?.configured === true
@@ -194,7 +172,7 @@ export class ExecutionSettingsStore {
     if (this.disposed) return
     this.store.update((s) => {
       if (s.status === 'idle') s.status = snapshot.status === 'ready' ? 'ready' : 'loading'
-      if (snapshot.value !== undefined) s.defaultTarget = snapshot.value.defTarget
+      if (snapshot.value !== undefined) s.defaultTarget = snapshot.value.default
       s.writable = snapshot.writable
     })
   }

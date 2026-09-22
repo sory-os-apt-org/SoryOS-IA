@@ -36,7 +36,7 @@ describe('E2B sandbox provider', () => {
   })
 
   it('fails closed when the sandbox never becomes ready', async () => {
-    state.ready = Promise.reject(new Error('no sandbox')) as Promise<{ workspace: string }>
+    state.ready = Promise.reject(new Error('no sandbox'))
     try {
       const ctx = await setup()
       await expect(ctx.sandbox.confine(['true'], policy)).rejects.toBeInstanceOf(SandboxUnavailableError)

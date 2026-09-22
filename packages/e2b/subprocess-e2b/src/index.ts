@@ -25,7 +25,7 @@
 import { PassThrough, type Readable, type Writable } from 'node:stream'
 import { Context } from '@deepseek-ai/cordis'
 import { SubprocessRuntime, SubprocessExecutableNotFoundError } from '@deepseek-ai/dsh-subprocess'
-import type { SubprocessCollectedOutputs, SubprocessHandle, SubprocessOutcome, SubprocessSpawnSpec, SubprocessTerminalEnvironment, SubprocessTerminalHandle, SubprocessTerminalSignal, SubprocessTerminalSpawnSpec } from '@deepseek-ai/dsh-subprocess'
+import type { SubprocessCollectedOutputs, SubprocessHandle, SubprocessOutcome, SubprocessOutputReader, SubprocessSpawnSpec, SubprocessTerminalEnvironment, SubprocessTerminalHandle, SubprocessTerminalSignal, SubprocessTerminalSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { OutputCollector, prepareManagedProcessBinding } from '@deepseek-ai/dsh-subprocess-local/output'
 import type { CommandHandle } from 'e2b'
 import type { E2bConnection } from '@deepseek-ai/dsh-e2b'
@@ -49,15 +49,19 @@ export function commandExitCode(error: unknown): number | undefined {
  * @param version - the envd version string from sandbox info, if any.
  * @param major - required major version.
  * @param minor - required minor version.
+ * @param patch - required patch version (defaults to 0).
  * @returns true when the version is known and meets the minimum.
  */
-export function supportsEnvd(version: string | undefined, major: number, minor: number): boolean {
+export function supportsEnvd(version: string | undefined, major: number, minor: number, patch = 0): boolean {
   if (version === undefined) return false
   const match = /^(\d+)\.(\d+)\.(\d+)/.exec(version)
   if (match === null) return false
   const gotMajor = Number(match[1])
   const gotMinor = Number(match[2])
-  return gotMajor > major || (gotMajor === major && gotMinor >= minor)
+  const gotPatch = Number(match[3])
+  if (gotMajor !== major) return gotMajor > major
+  if (gotMinor !== minor) return gotMinor > minor
+  return gotPatch >= patch
 }
 
 /**
@@ -66,7 +70,7 @@ export function supportsEnvd(version: string | undefined, major: number, minor: 
  * @returns true when `closeStdin` may be called.
  */
 export function supportsStdinClose(version: string | undefined): boolean {
-  return supportsEnvd(version, 0, 5)
+  return supportsEnvd(version, 0, 5, 2)
 }
 
 /** One E2B ordinary process with real stdin, bounded tails, and kill. */
@@ -99,7 +103,8 @@ class E2bProcess implements SubprocessHandle {
     // coordinates and readers delegate without base translation. Spill files
     // use the collector's own secure O_EXCL handling.
     const spillDir = prepareManagedProcessBinding().spillDir
-    const readers: SubprocessCollectedOutputs = {}
+    let stdoutReader: SubprocessOutputReader | undefined
+    let stderrReader: SubprocessOutputReader | undefined
     for (const name of ['stdout', 'stderr'] as const) {
       const mode = spec.stdio[name]
       if (mode === 'pipe') continue
@@ -110,9 +115,14 @@ class E2bProcess implements SubprocessHandle {
       }
       const collector = new OutputCollector(mode.maxBytes, mode.spill?.maxBytes, name, spillDir)
       this.collectors.set(name, collector)
-      readers[name] = { readFrom: (fromByte: number) => collector.readFrom(fromByte) }
+      const reader: SubprocessOutputReader = { readFrom: (fromByte: number) => collector.readFrom(fromByte) }
+      if (name === 'stdout') stdoutReader = reader
+      else stderrReader = reader
     }
-    this.collected = readers
+    this.collected = {
+      ...(stdoutReader === undefined ? {} : { stdout: stdoutReader }),
+      ...(stderrReader === undefined ? {} : { stderr: stderrReader }),
+    }
     const onAbort = (): void => { this.terminate() }
     spec.signal?.addEventListener('abort', onAbort, { once: true })
     this.abortListener = () => { spec.signal?.removeEventListener('abort', onAbort) }
@@ -187,7 +197,7 @@ class E2bProcess implements SubprocessHandle {
       stdin: stdinMode !== 'ignore',
       timeoutMs: this.e2b.requestTimeoutMs,
       requestTimeoutMs: this.e2b.requestTimeoutMs,
-      signal: this.spec.signal,
+      ...(this.spec.signal === undefined ? {} : { signal: this.spec.signal }),
       onStdout: (chunk) => { this.feed('stdout', chunk) },
       onStderr: (chunk) => { this.feed('stderr', chunk) },
     })
@@ -256,7 +266,7 @@ class E2bProcess implements SubprocessHandle {
         if (stream.readableEnded || stream.destroyed) return Promise.resolve()
         return new Promise<void>((resolve) => {
           const timer = setTimeout(resolve, this.spec.graceMs)
-          timer.unref?.()
+          timer.unref()
           const done = (): void => { clearTimeout(timer); resolve() }
           for (const event of ['end', 'close', 'error']) stream.once(event, done)
         })
@@ -295,8 +305,7 @@ export class E2bSubprocessRuntime extends SubprocessRuntime {
     }
     const e2b = this.ctx.e2b
     const workspace = (await e2b.ready).workspace
-    const clean = env === undefined ? undefined
-      : Object.fromEntries(Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined))
+    const clean = env === undefined ? undefined : { ...env }
     const probe = command.startsWith('/')
       ? `test -x ${quoted(command)} && printf '%s' ${quoted(command)}`
       : `command -v ${quoted(command)}`
@@ -308,7 +317,7 @@ export class E2bSubprocessRuntime extends SubprocessRuntime {
           ...(clean === undefined ? {} : { envs: clean }),
           timeoutMs: e2b.requestTimeoutMs,
           requestTimeoutMs: e2b.requestTimeoutMs,
-          signal,
+          ...(signal === undefined ? {} : { signal }),
         }),
         signal,
       )
@@ -327,7 +336,8 @@ export class E2bSubprocessRuntime extends SubprocessRuntime {
     const workspace = (await e2b.ready).workspace
     const result = await e2b.bounded(
       e2b.connection().commands.run('printf %s "$SHELL"', {
-        cwd: workspace, timeoutMs: e2b.requestTimeoutMs, requestTimeoutMs: e2b.requestTimeoutMs, signal,
+        cwd: workspace, timeoutMs: e2b.requestTimeoutMs, requestTimeoutMs: e2b.requestTimeoutMs,
+        ...(signal === undefined ? {} : { signal }),
       }),
       signal,
     )
@@ -408,7 +418,7 @@ export class E2bSubprocessRuntime extends SubprocessRuntime {
       done: exited.promise,
       write: async (data) => { await sandbox.pty.sendInput(pid, Buffer.from(data, 'utf-8')) },
       resize: async (cols, rows) => { await sandbox.pty.resize(pid, { cols, rows }) },
-      inspectForeground: async () => undefined,
+      inspectForeground: () => Promise.resolve(undefined),
       signalForeground: async (terminalSignal: SubprocessTerminalSignal) => {
         // No foreground-group API exists on E2B ptys: interrupt keys travel as
         // input, terminal signals end the session. The pid stands in for the group id.
@@ -441,8 +451,8 @@ export class E2bSubprocessRuntime extends SubprocessRuntime {
  */
 function isShellArgv(argv: readonly string[]): boolean {
   if (argv.length === 0) return true
-  const program = argv[0].split('/').pop() ?? ''
-  return program === 'sh' || program === 'bash' || program === 'zsh' || program === 'fish';
+  const program = (argv[0] ?? '').split('/').pop() ?? ''
+  return program === 'sh' || program === 'bash' || program === 'zsh' || program === 'fish'
 }
 
 /** Single-quote one shell word for lookup probes. */

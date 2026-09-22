@@ -1,0 +1,18 @@
+[submodule "projets-a-extraires/E2B"]
+	path = projets-a-extraires/E2B
+	url = https://github.com/e2b-dev/E2B.git
+[submodule "projets-a-extraires/code-interpreter"]
+	path = projets-a-extraires/code-interpreter
+	url = https://github.com/e2b-dev/code-interpreter.git
+[submodule "projets-a-extraires/e2b-cookbook"]
+	path = projets-a-extraires/e2b-cookbook
+	url = https://github.com/e2b-dev/e2b-cookbook.git
+[submodule "projets-a-extraires/fragments"]
+	path = projets-a-extraires/fragments
+	url = https://github.com/e2b-dev/fragments.git
+[submodule "projets-a-extraires/runtime"]
+	path = projets-a-extraires/runtime
+	url = https://github.com/e2b-dev/runtime.git
+[submodule "projets-a-extraires/surf"]
+	path = projets-a-extraires/surf
+	url = https://github.com/e2b-dev/surf.git

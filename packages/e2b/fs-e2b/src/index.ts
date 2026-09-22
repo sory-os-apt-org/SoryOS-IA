@@ -26,7 +26,7 @@ import type { FsDirEntry, FsEditOutcome, FsEditRequest, FsErrorCode, FsInfo, FsP
 import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 import type {} from '@deepseek-ai/dsh-e2b'
 import type { E2bConnection } from '@deepseek-ai/dsh-e2b'
-import { FileNotFoundError } from 'e2b'
+import { FileNotFoundError, FileType } from 'e2b'
 import type { EntryInfo } from 'e2b'
 
 /** Symlink chase guard: absolute paths cannot nest deeper than this. */
@@ -91,7 +91,7 @@ export class E2bFileSystem extends FileSystem {
     const path = this.processPath(target)
     await this.requireFile(path, signal)
     const stream = await this.files().read(path, {
-      format: 'stream', requestTimeoutMs: this.timeout(), signal,
+      format: 'stream', requestTimeoutMs: this.timeout(), ...(signal === undefined ? {} : { signal }),
     })
     return (async function* () {
       // Single-pass streaming fatal decode: a binary file fails loud instead
@@ -121,7 +121,7 @@ export class E2bFileSystem extends FileSystem {
     const path = this.processPath(target)
     const entry = await this.info(path, signal)
     if (entry === undefined) fail(`E2B read of missing file ${path}`, 'FS_NOT_FOUND')
-    if (entry.type !== 'file') fail(`E2B read of non-regular file ${path}`, 'FS_NOT_REGULAR_FILE')
+    if (entry.type !== FileType.FILE) fail(`E2B read of non-regular file ${path}`, 'FS_NOT_REGULAR_FILE')
     if (entry.size > maxBytes) fail(`E2B file ${path} exceeds ${maxBytes} bytes`, 'FS_TOO_LARGE')
     return this.readAll(path, signal)
   }
@@ -136,7 +136,7 @@ export class E2bFileSystem extends FileSystem {
     // The SDK has no partial read: stream, skip the prefix, keep the window.
     // Memory stays bounded by `length`, never by the file.
     const stream = await this.files().read(path, {
-      format: 'stream', requestTimeoutMs: this.timeout(), signal,
+      format: 'stream', requestTimeoutMs: this.timeout(), ...(signal === undefined ? {} : { signal }),
     })
     const reader = stream.getReader()
     const kept: Uint8Array[] = []
@@ -178,22 +178,22 @@ export class E2bFileSystem extends FileSystem {
     const path = this.processPath(target)
     const entry = await this.info(path, signal)
     if (entry === undefined) fail(`E2B listing of missing directory ${path}`, 'FS_NOT_FOUND')
-    if (entry.type !== 'dir') fail(`E2B listing of non-directory ${path}`, 'FS_NOT_DIRECTORY')
+    if (entry.type !== FileType.DIR) fail(`E2B listing of non-directory ${path}`, 'FS_NOT_DIRECTORY')
     let entries: EntryInfo[]
     try {
-      entries = await this.files().list(path, { requestTimeoutMs: this.timeout(), signal })
+      entries = await this.files().list(path, { requestTimeoutMs: this.timeout(), ...(signal === undefined ? {} : { signal }) })
     } catch (error) {
       throw this.wrap(error, path, signal)
     }
-    const out: FsDirEntry[] = entries.map(child => {
+    const out: FsDirEntry[] = entries.map((child) => {
       // Keys join deterministically from the listed directory: entry paths
       // are presentation, while identity stays under this provider's control.
       const childPath = posix.join(path, child.name)
       return {
         name: child.name,
-        type: child.type === 'file' ? 'file' : child.type === 'dir' ? 'directory' : 'other',
+        type: child.type === FileType.FILE ? 'file' : child.type === FileType.DIR ? 'directory' : 'other',
         target: { targetKey: FsTargetKey(childPath), displayPath: childPath },
-        ...(child.size === undefined ? {} : { size: child.size }),
+        size: child.size,
       }
     })
     out.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
@@ -206,7 +206,7 @@ export class E2bFileSystem extends FileSystem {
     const path = this.processPath(target)
     const after = normalize(content)
     const entry = await this.info(path, signal)
-    if (entry !== undefined && entry.type !== 'file') {
+    if (entry !== undefined && entry.type !== FileType.FILE) {
       fail(`E2B write to non-regular file ${path}`, 'FS_NOT_REGULAR_FILE')
     }
     if (expected !== undefined) {
@@ -222,7 +222,7 @@ export class E2bFileSystem extends FileSystem {
     // the basis is read whole; a binary prior file declines the basis.
     const before = entry === undefined ? undefined : await this.textOrNull(path, signal)
     try {
-      await this.files().write(path, after, { requestTimeoutMs: this.timeout(), signal })
+      await this.files().write(path, after, { requestTimeoutMs: this.timeout(), ...(signal === undefined ? {} : { signal }) })
     } catch (error) {
       throw this.wrap(error, path, signal)
     }
@@ -239,7 +239,7 @@ export class E2bFileSystem extends FileSystem {
     if (edit.oldString.length === 0) fail(`E2B edit of ${path} has an empty search string`, 'FS_EDIT_NOT_FOUND')
     const entry = await this.info(path, signal)
     if (entry === undefined) fail(`E2B edit of missing file ${path}`, 'FS_NOT_FOUND')
-    if (entry.type !== 'file') fail(`E2B edit of non-regular file ${path}`, 'FS_NOT_REGULAR_FILE')
+    if (entry.type !== FileType.FILE) fail(`E2B edit of non-regular file ${path}`, 'FS_NOT_REGULAR_FILE')
     if (expected !== undefined && String(versionOf(entry)) !== String(expected.version)) {
       fail(`E2B file ${path} changed since observation`, 'FS_STALE_VERSION')
     }
@@ -258,7 +258,7 @@ export class E2bFileSystem extends FileSystem {
       : before.replace(normalize(edit.oldString), edit.newString)
     if (expected !== undefined) await this.checkVersion(path, expected.version, signal)
     try {
-      await this.files().write(path, after, { requestTimeoutMs: this.timeout(), signal })
+      await this.files().write(path, after, { requestTimeoutMs: this.timeout(), ...(signal === undefined ? {} : { signal }) })
     } catch (error) {
       throw this.wrap(error, path, signal)
     }
@@ -286,7 +286,7 @@ export class E2bFileSystem extends FileSystem {
     let current = spelled
     for (let hop = 0; hop < MAX_SYMLINK_HOPS; hop += 1) {
       const entry = await this.info(current, signal)
-      if (entry === undefined || entry.type !== 'symlink' || entry.symlinkTarget === undefined) return current
+      if (entry === undefined || entry.type !== FileType.SYMLINK || entry.symlinkTarget === undefined) return current
       current = posix.resolve(posix.dirname(current), entry.symlinkTarget)
     }
     fail(`E2B resolve of ${spelled} exceeds ${MAX_SYMLINK_HOPS} symlink hops`, 'FS_IO_ERROR')
@@ -294,7 +294,7 @@ export class E2bFileSystem extends FileSystem {
 
   private async info(path: string, signal?: AbortSignal): Promise<EntryInfo | undefined> {
     try {
-      return await this.files().getInfo(path, { requestTimeoutMs: this.timeout(), signal })
+      return await this.files().getInfo(path, { requestTimeoutMs: this.timeout(), ...(signal === undefined ? {} : { signal }) })
     } catch (error) {
       if (error instanceof FileNotFoundError) return undefined
       throw this.wrap(error, path, signal)
@@ -304,12 +304,12 @@ export class E2bFileSystem extends FileSystem {
   private async requireFile(path: string, signal?: AbortSignal): Promise<void> {
     const entry = await this.info(path, signal)
     if (entry === undefined) fail(`E2B read of missing file ${path}`, 'FS_NOT_FOUND')
-    if (entry.type !== 'file') fail(`E2B read of non-regular file ${path}`, 'FS_NOT_REGULAR_FILE')
+    if (entry.type !== FileType.FILE) fail(`E2B read of non-regular file ${path}`, 'FS_NOT_REGULAR_FILE')
   }
 
   private async readAll(path: string, signal?: AbortSignal): Promise<Uint8Array> {
     try {
-      return await this.files().read(path, { format: 'bytes', requestTimeoutMs: this.timeout(), signal })
+      return await this.files().read(path, { format: 'bytes', requestTimeoutMs: this.timeout(), ...(signal === undefined ? {} : { signal }) })
     } catch (error) {
       throw this.wrap(error, path, signal)
     }
@@ -351,11 +351,11 @@ export class E2bFileSystem extends FileSystem {
 }
 
 function fileTypeOf(entry: EntryInfo): FsInfo['type'] {
-  return entry.type === 'file' ? 'file' : entry.type === 'dir' ? 'directory' : 'other'
+  return entry.type === FileType.FILE ? 'file' : entry.type === FileType.DIR ? 'directory' : 'other'
 }
 
 function pathTypeOf(entry: EntryInfo): FsPathInfo['type'] {
-  return entry.type === 'file' ? 'file' : entry.type === 'dir' ? 'directory' : entry.type === 'symlink' ? 'symlink' : 'other'
+  return entry.type === FileType.FILE ? 'file' : entry.type === FileType.DIR ? 'directory' : entry.type === FileType.SYMLINK ? 'symlink' : 'other'
 }
 
 function decode(bytes: Uint8Array, path: string): string {

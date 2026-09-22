@@ -67,6 +67,7 @@ async function loadComposition(): Promise<Context> {
   context = new Context()
   context.baseUrl = pathToFileURL(root).href + '/'
   await context.plugin(Loader)
+  context.loader.builtins.include = Include
   context.loader.internal = {
     version: 'v2',
     async import(specifier: string) {
@@ -85,10 +86,10 @@ async function loadComposition(): Promise<Context> {
 describe('e2b Loader composition', () => {
   it('reserves the sandbox from deployment config and announces the cloud world', async () => {
     const writes: string[] = []
-    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(((chunk: unknown) => {
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
       writes.push(String(chunk))
       return true
-    }) as typeof process.stderr.write)
+    })
     try {
       const ctx = await loadComposition()
       const unloaded = [...ctx.loader.entries()]

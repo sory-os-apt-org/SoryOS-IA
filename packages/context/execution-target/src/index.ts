@@ -41,18 +41,18 @@ export type ExecutionWorld = 'local' | 'e2b-cloud'
  */
 export function renderWorldText(world: ExecutionWorld, directory: string, canAsk: boolean): string {
   const base = world === 'e2b-cloud'
-    ? `Execution world: e2b-cloud\n`
+    ? 'Execution world: e2b-cloud\n'
       + `Working directory: ${directory}.\n`
-      + `Shell commands, file tools, and terminals run inside an isolated cloud sandbox that persists for this session. `
-      + `The sandbox filesystem holds only what earlier steps created there; nothing from the operator's machine is visible unless a step put it there.`
-    : `Execution world: local\n`
+      + 'Shell commands, file tools, and terminals run inside an isolated cloud sandbox that persists for this session. '
+      + 'The sandbox filesystem holds only what earlier steps created there; nothing from the operator\'s machine is visible unless a step put it there.'
+    : 'Execution world: local\n'
       + `Working directory: ${directory}.\n`
-      + `Shell commands, file tools, and terminals run on the operator's own machine.`
+      + 'Shell commands, file tools, and terminals run on the operator\'s own machine.'
   if (!canAsk) return base
   return `${base}\n`
-    + `If the task involves long tests or heavy commands and no world was chosen for it, ask the user with ask_user_question `
-    + `(options: Local, E2B Cloud) before running. If the user picks the world you are not running in, do not switch silently: `
-    + `stop and report how to relaunch instead (local runs by default; cloud runs add the E2B overlay patch to the launch command).`
+    + 'If the task involves long tests or heavy commands and no world was chosen for it, ask the user with ask_user_question '
+    + '(options: Local, E2B Cloud) before running. If the user picks the world you are not running in, do not switch silently: '
+    + 'stop and report how to relaunch instead (local runs by default; cloud runs add the E2B overlay patch to the launch command).'
 }
 
 /**
