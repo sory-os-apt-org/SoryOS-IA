@@ -7,6 +7,8 @@ export type { ConnectionRecoveryConfig } from '../recovery-config.ts'
 export interface ConnectionHostInfo {
   /** Host account home used only to abbreviate displayed filesystem paths. */
   readonly home: string
+  /** Execution world the Host's tools run in: the operator's machine or the managed E2B cloud sandbox. */
+  readonly executionWorld: 'local' | 'e2b-cloud'
 }
 
 /** One successfully established Host generation. */

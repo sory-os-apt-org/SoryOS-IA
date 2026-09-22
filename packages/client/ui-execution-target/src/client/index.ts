@@ -7,6 +7,8 @@
  * packages/client/AGENTS.md.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
+import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the shell's SlotMap merge (the 'settings.section' entry).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
@@ -17,6 +19,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import { ExecutionSection } from './ExecutionSection.tsx'
 import type { ExecutionSectionInjected } from './ExecutionSection.tsx'
+import { WorldBadge } from './WorldBadge.tsx'
 import { decodeExecutionSection, ExecutionSettingsStore } from './store.ts'
 import { createExecutionOperations, EXECUTION_SETTINGS_NAMESPACE } from './operations.ts'
 import { en, fr, zh, type ExecutionKey } from './locales.ts'
@@ -99,4 +102,19 @@ export function apply(ctx: ClientContext): void {
     label: () => t('nav'),
     inject: injected,
   }, ExecutionSection))
+
+  // The world badge rides the session-header utilities row beside the other
+  // per-session chrome. The Host facts observable keeps it live across
+  // reconnects without a fetch of its own.
+  const hostInfo: HostObservable<RemoteHostFacts> = {
+    getSnapshot: () => ctx.remote.$host,
+    subscribe: listener => ctx.on('connection/reset', listener),
+  }
+  ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+    name: 'conversation.session.header.utilities',
+    id: 'execution-world',
+    order: 10,
+    locale: NS,
+    inject: () => ({ hooks: { hostInfo }, t }),
+  }, WorldBadge))
 }

@@ -49,7 +49,7 @@ class GenerationProbe {
     }
     this.active.add(finish)
     signal.addEventListener('abort', finish, { once: true })
-    ready({ home: '/h' })
+    ready({ home: '/h', executionWorld: 'local' })
     if (signal.aborted) finish()
   })
 
@@ -274,7 +274,7 @@ describe('connection client apply', () => {
     let calls = 0
     const source: ConnectionGenerationSource = (signal, ready) => new Promise<void>((resolve) => {
       calls++
-      ready({ home: '/h' })
+      ready({ home: '/h', executionWorld: 'local' })
       signal.addEventListener('abort', () => { resolve() }, { once: true })
     })
     handle.registerGenerationSource(source)

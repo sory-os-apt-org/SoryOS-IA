@@ -56,7 +56,7 @@ function installConnection(ctx: Context, initialId: number | undefined): Generat
 function generationOf(id: number | undefined): ConnectionGeneration | undefined {
   return id === undefined
     ? undefined
-    : { id, host: { home: `/host-${String(id)}` } }
+    : { id, host: { home: `/host-${String(id)}`, executionWorld: 'local' } }
 }
 
 describe('PermissionCatalogDirectory', () => {

@@ -27,6 +27,8 @@ export type ExecutionKey =
   | 'conflict'
   | 'refused'
   | 'saving'
+  | 'worldLocal'
+  | 'worldCloud'
 
 /** English copy. */
 export const en: Record<ExecutionKey, string> = {
@@ -50,6 +52,8 @@ export const en: Record<ExecutionKey, string> = {
   conflict: 'Settings changed elsewhere. Reload and try again.',
   refused: 'The host refused the write.',
   saving: 'Saving…',
+  worldLocal: 'Local',
+  worldCloud: 'E2B Cloud',
 }
 
 /** French copy. Missing keys in other packages fall back per-key to English. */
@@ -74,6 +78,8 @@ export const fr: Record<ExecutionKey, string> = {
   conflict: 'Réglages modifiés ailleurs, rechargez puis réessayez.',
   refused: 'L’hôte a refusé l’écriture.',
   saving: 'Enregistrement…',
+  worldLocal: 'Local',
+  worldCloud: 'E2B Cloud',
 }
 
 /** Chinese copy. */
@@ -98,4 +104,6 @@ export const zh: Record<ExecutionKey, string> = {
   conflict: '设置已在别处更改，请重载后重试。',
   refused: '主机拒绝了写入。',
   saving: '保存中…',
+  worldLocal: '本地',
+  worldCloud: 'E2B 云端',
 }

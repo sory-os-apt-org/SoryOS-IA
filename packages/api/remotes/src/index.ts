@@ -39,7 +39,12 @@ export const inject = ['typertGateway']
 /** Host plugin body registering this application's selected Cordis event source. */
 export function apply(ctx: Context): void {
   ctx.effect(
-    () => ctx.typertGateway.registerRemoteEvents(remoteEventSource(ctx), { home: homedir() }),
+    () => ctx.typertGateway.registerRemoteEvents(remoteEventSource(ctx), {
+      home: homedir(),
+      // Composition fact, not readiness: the mounted `e2b` service selects
+      // the cloud world the same way the execution providers do.
+      executionWorld: ctx.get('e2b') === undefined ? 'local' : 'e2b-cloud',
+    }),
     'api-remotes: forwarded Cordis event source',
   )
 }

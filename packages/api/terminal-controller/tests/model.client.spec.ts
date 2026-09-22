@@ -329,7 +329,7 @@ it('does not wait for the DOM callback of a screen whose generation was already 
 
 it.each(['write', 'resize'] as const)('keeps a fresh attachment writable when a pending %s fails after automatic transport recovery', async (operation) => {
   const { model, remote, generation } = fixture()
-  generation.set({ id: 1, host: { home: '/home/fixture' } })
+  generation.set({ id: 1, host: { home: '/home/fixture', executionWorld: 'local' } })
   const disconnected = Promise.withResolvers<undefined>()
   vi.mocked(remote.follow).mockImplementationOnce(async function* (_sessionId, id, controllerId, signal) {
     yield { type: 'snapshot', sequence: 0, screen: 'before disconnect', info: { ...info, id, controllerId } }
@@ -354,7 +354,7 @@ it.each(['write', 'resize'] as const)('keeps a fresh attachment writable when a 
   expect(model.state.getSnapshot().writable).toBe(false)
   expect(remote.follow).toHaveBeenCalledOnce()
 
-  generation.set({ id: 2, host: { home: '/home/fixture' } })
+  generation.set({ id: 2, host: { home: '/home/fixture', executionWorld: 'local' } })
   await expect.poll(() => model.state.getSnapshot().writable).toBe(true)
   expect(remote.follow).toHaveBeenCalledTimes(2)
   const attachmentId = vi.mocked(remote.follow).mock.calls[1]![2]

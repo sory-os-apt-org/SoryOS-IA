@@ -24,7 +24,7 @@ Web GUI 在独立的 Execution 设置区编辑执行默认值：本地/E2B 云�
 <a id="use-this-package"></a>
 ## Use this package
 
-将本插件与 settings 包一起挂载；Execution 区随后以 `settings.section` 顺序 20 与自有 `settings.execution` 字典命名空间注册。草稿（所选世界、密钥输入）留在组件本地；已存默认值走带修订 fence 的绑定设置 scope，密钥走 credentials seam。未打开的区绝不拉取；推送的设置/凭证失效与连接重置只在首次加载后重拉。
+将本插件与 settings 包一起挂载；Execution 区随后以 `settings.section` 顺序 20 与自有 `settings.execution` 字典命名空间注册。Host 侧在 settings 服务组合后注册持久 `execution-target` 设置区（默认为 `local`）；缺少它时该区显示不可用，默认值写入一律被拒。草稿（所选世界、密钥输入）留在组件本地；已存默认值走带修订 fence 的绑定设置 scope，密钥走 credentials seam。未打开的区绝不拉取；推送的设置/凭证失效与连接重置只在首次加载后重拉。
 
 -----
 

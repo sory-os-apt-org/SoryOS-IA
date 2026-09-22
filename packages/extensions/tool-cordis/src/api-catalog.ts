@@ -875,6 +875,59 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'e2b',
+    summary: 'One non-reconnecting E2B sandbox session; loss invalidates all active operations.',
+    description: 'One non-reconnecting E2B sandbox session; loss invalidates all active operations.',
+    methods: [
+      {
+        signature: 'readonly ready: Promise<{ workspace: string }>',
+        description: 'Verified sandbox coordinates; callers must await this before launch.',
+        parameters: [],
+      },
+      {
+        signature: 'connection(): Sandbox',
+        description: 'The live sandbox for provider calls; throws before readiness or after failure. Providers must not cache this across `dispose()`.',
+        parameters: [],
+        returns: 'the connected E2B sandbox.',
+      },
+      {
+        signature: 'async bounded<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T>',
+        description: 'Race an operation against the administrative deadline plus caller cancellation. Cancellation never replays an ambiguous mutation.',
+        parameters: [{ name: 'operation', description: 'the in-flight SDK promise.' }, { name: 'signal', description: 'caller cancellation, which does not undo completed remote effects.' }],
+        returns: 'the operation result.',
+      },
+      {
+        signature: 'dispose(): Promise<void>',
+        description: 'Tear down the sandbox, invalidating every in-flight provider operation.',
+        parameters: [],
+      },
+      {
+        signature: 'getHost(port: number): string',
+        description: 'Public URL of one sandbox port for port-forwarded previews (e.g. a dev server the agent started). The URL is deployment data for the operator, never a model argument.',
+        parameters: [{ name: 'port', description: 'the sandbox port to expose.' }],
+        returns: 'the public host URL serving that port.',
+      },
+      {
+        signature: 'async pause(keepMemory: boolean = false): Promise<boolean>',
+        description: 'Pause the sandbox, keeping memory when asked so resume restores processes.',
+        parameters: [{ name: 'keepMemory', description: 'snapshot memory as well as the filesystem.' }],
+        returns: 'true when the sandbox paused.',
+      },
+      {
+        signature: 'async createSnapshot(name?: string): Promise<SnapshotInfo>',
+        description: 'Snapshot the sandbox; the id doubles as a template id for fast clones (e.g. a prebuilt Rust toolchain environment).',
+        parameters: [{ name: 'name', description: 'optional snapshot name (reuses the template name when set).' }],
+        returns: 'the snapshot identity.',
+      },
+      {
+        signature: 'async getInfo(): Promise<SandboxInfo>',
+        description: 'Sandbox facts (template, state, resources) for operators and diagnostics.',
+        parameters: [],
+        returns: 'the sandbox info record.',
+      },
+    ],
+  },
+  {
     key: 'fileReferences',
     summary: 'Host capability for cancellable file-reference discovery.',
     description: 'Host capability for cancellable file-reference discovery.',
@@ -5068,7 +5121,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'RemoteEventHostInfo',
-    declaration: 'export interface RemoteEventHostInfo {\n    readonly home: string;\n}',
+    declaration: 'export interface RemoteEventHostInfo {\n    readonly home: string;\n    readonly executionWorld: \'local\' | \'e2b-cloud\';\n}',
   },
   {
     name: 'ReplayEnvelope',

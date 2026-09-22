@@ -34,6 +34,7 @@ One page per subsystem of the DeepSeek Harness: what it is, the data structures 
 | [ssh.md](ssh.md) | the POSIX SSH connection and remote filesystem, subprocess and sandbox providers |
 | [terminal.md](terminal.md) | persistent terminal ids, backend/session contracts, send readiness, bounded reads, and owner-visible snapshots |
 | [sandbox.md](sandbox.md) | per-session policy resolution and the process-confinement seam: file-effect modes, execution/provider policies, `ConfinedArgv`, enforcement and fail-closed errors |
+| [e2b.md](e2b.md) | the E2B cloud-execution subsystem: one sandbox session per API key, standard providers over it, the `local`/`e2b-cloud` world vocabulary, and the overlay composition |
 | [ptc-runtime.md](ptc-runtime.md) | the PTC execution seam: `PtcRunRequest`/`Result`, binding namespaces, captured logs, the `PtcRunFailure` taxonomy |
 | [computer-use.md](computer-use.md) | exclusive named computer-use provider registration and Cua Driver integration choices |
 | [browser-use.md](browser-use.md) | exclusive named browser-use registration, provider choices, and per-Session browser ownership |

@@ -130,6 +130,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   workspaceFiles: 'workspace.md',
   terminalController: 'workspace.md',
   directoryPickerController: 'workspace.md',
+  e2b: 'e2b.md',
 }
 
 /**
@@ -800,6 +801,9 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   TerminalAttachmentId: 'Browser terminal input ownership is owned by packages/api/terminal-controller/README.md',
   TerminalFrame: 'Browser terminal stream frames are owned by packages/api/terminal-controller/README.md',
   WebTerminalId: 'Browser terminal identity is owned by packages/api/terminal-controller/README.md',
+  Sandbox: 'E2B sandbox handle is owned by the e2b SDK (https://e2b.dev/docs)',
+  SnapshotInfo: 'E2B snapshot identity is owned by the e2b SDK (https://e2b.dev/docs)',
+  SandboxInfo: 'E2B sandbox facts are owned by the e2b SDK (https://e2b.dev/docs)',
 }
 
 /** Repository data policy consumed by the Cordis catalog projector. */

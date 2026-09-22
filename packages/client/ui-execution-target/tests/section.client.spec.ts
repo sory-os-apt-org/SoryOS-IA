@@ -7,6 +7,7 @@ const keys: ExecutionKey[] = [
   'nav', 'title', 'blurb', 'localName', 'localBlurb', 'cloudName', 'cloudBlurb',
   'keyLabel', 'keyPlaceholder', 'keyStored', 'keyMissing', 'keyBlank', 'keyIllegalCharacters',
   'saveKey', 'removeKey', 'saveDefault', 'saved', 'conflict', 'refused', 'saving',
+  'worldLocal', 'worldCloud',
 ]
 
 describe('apiKeyFailure', () => {

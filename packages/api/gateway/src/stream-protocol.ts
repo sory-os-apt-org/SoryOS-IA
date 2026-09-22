@@ -27,6 +27,12 @@ export type RemoteEventId = Branded<'RemoteEventId'>
 export interface RemoteEventHostInfo {
   /** Host account home used only to abbreviate displayed filesystem paths. */
   readonly home: string
+  /**
+   * Execution world the Host's tools run in: the operator's machine or the
+   * managed E2B cloud sandbox. A composition fact (the `e2b` service is
+   * mounted or not), mirroring the `execution-target` settings namespace.
+   */
+  readonly executionWorld: 'local' | 'e2b-cloud'
 }
 
 /** Opening item that binds later HTTP results to this active event stream. */

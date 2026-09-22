@@ -489,7 +489,7 @@ class RemoteEventCarrier {
     const abort = (): void => { connection.wake?.() }
     signal.addEventListener('abort', abort, { once: true })
     try {
-      yield { type: 'ready', clientId, host: { home: '/home/fixture' } }
+      yield { type: 'ready', clientId, host: { home: '/home/fixture', executionWorld: 'local' } }
       while (!signal.aborted) {
         while (connection.items.length > 0) {
           const item = connection.items.shift() as EventStreamItem
@@ -575,12 +575,12 @@ describe('Client Remote transport readiness', () => {
     const remote = ctx.remote
 
     const beforeReady = remote.$host
-    expect(beforeReady).toEqual({ home: undefined, isLoopback: true })
+    expect(beforeReady).toEqual({ home: undefined, executionWorld: undefined, isLoopback: true })
     expect(remote.$host).toBe(beforeReady)
 
-    live.snapshot = { id: 1, host: { home: '/hosts/primary' } }
+    live.snapshot = { id: 1, host: { home: '/hosts/primary', executionWorld: 'local' } }
     const afterReady = remote.$host
-    expect(afterReady).toEqual({ home: '/hosts/primary', isLoopback: true })
+    expect(afterReady).toEqual({ home: '/hosts/primary', executionWorld: 'local', isLoopback: true })
     expect(afterReady).not.toBe(beforeReady)
     expect(remote.$host).toBe(afterReady)
 
@@ -637,7 +637,7 @@ describe('Client Remote transport readiness', () => {
         const opening = JSON.parse(replacement.sent[0]!) as { streamId: string }
         replacement.receive({
           type: 'item', streamId: opening.streamId,
-          value: { type: 'ready', clientId: 'recovered-client', host: { home: '/recovered' } },
+          value: { type: 'ready', clientId: 'recovered-client', host: { home: '/recovered', executionWorld: 'local' } },
         })
         await vi.advanceTimersByTimeAsync(0)
         expect(connection.state.getSnapshot()).toBe('connected')
@@ -1937,7 +1937,7 @@ describe('Client Typert API', () => {
       socket.receive({
         type: 'item',
         streamId: opened.streamId,
-        value: { type: 'ready', clientId: 'browser-client', host: { home: '/home/browser' } },
+        value: { type: 'ready', clientId: 'browser-client', host: { home: '/home/browser', executionWorld: 'local' } },
       })
       await run.ready
       socket.receive({
@@ -2021,6 +2021,7 @@ describe('Client Typert API', () => {
     { type: 'ready', clientId: 'client', host: {} },
     { type: 'ready', clientId: 'client', host: { home: 1 } },
     { type: 'ready', clientId: 'client', host: { home: '/home', extra: true } },
+    { type: 'ready', clientId: 'client', host: { home: '/home', executionWorld: 'mars' } },
     { type: 'emit', event: 'fixture/changed', args: ['too early'] },
   ])('rejects malformed forwarded-event readiness item %#', async (opening) => {
     const open: NonNullable<ConnectionHandle['rpc']['open']> = () => (async function *() {

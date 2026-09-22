@@ -22,7 +22,7 @@ The Web GUI edits the execution default in its own Execution settings section: L
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount this plugin alongside the settings packages; the Execution section then registers at `settings.section` order 20 with its own `settings.execution` dictionary namespace. Drafts (picked world, key input) stay component-local; the stored default rides the bound settings scope (revision fencing included) and the key rides the credentials seam. An unopened section never fetches; pushed settings/credential invalidations and connection resets refetch only after the first load.
+Mount this plugin alongside the settings packages; the Execution section then registers at `settings.section` order 20 with its own `settings.execution` dictionary namespace. The Host half registers the durable `execution-target` settings section (defaulting to `local`) once a settings service is composed; without it the section reads unavailable and every default write is refused. Drafts (picked world, key input) stay component-local; the stored default rides the bound settings scope (revision fencing included) and the key rides the credentials seam. An unopened section never fetches; pushed settings/credential invalidations and connection resets refetch only after the first load.
 
 -----
 

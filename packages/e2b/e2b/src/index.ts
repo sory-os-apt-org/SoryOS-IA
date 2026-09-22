@@ -15,7 +15,7 @@
 
 import { Context, Service } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
-import { Sandbox } from 'e2b'
+import { Sandbox, type SandboxInfo, type SnapshotInfo } from 'e2b'
 import { z } from 'zod'
 
 /** Deployment-owned E2B identity and sandbox tuning; no model argument selects these values. */
@@ -155,7 +155,7 @@ export class E2bConnection extends Service {
    * @param keepMemory - snapshot memory as well as the filesystem.
    * @returns true when the sandbox paused.
    */
-  async pause(keepMemory = false): Promise<boolean> {
+  async pause(keepMemory: boolean = false): Promise<boolean> {
     return this.connection().pause({ keepMemory })
   }
 
@@ -165,7 +165,7 @@ export class E2bConnection extends Service {
    * @param name - optional snapshot name (reuses the template name when set).
    * @returns the snapshot identity.
    */
-  async createSnapshot(name?: string) {
+  async createSnapshot(name?: string): Promise<SnapshotInfo> {
     const sandbox = this.connection()
     return sandbox.createSnapshot(name === undefined ? {} : { name })
   }
@@ -174,7 +174,7 @@ export class E2bConnection extends Service {
    * Sandbox facts (template, state, resources) for operators and diagnostics.
    * @returns the sandbox info record.
    */
-  async getInfo() {
+  async getInfo(): Promise<SandboxInfo> {
     return this.connection().getInfo()
   }
 
